@@ -7,6 +7,9 @@ from itertools import groupby
 
 
 class ExpediaKNN:
+    """
+    Class for KNN algorithm.
+    """
 
     K_VALUE = 10
 
@@ -22,15 +25,30 @@ class ExpediaKNN:
         pass
 
     def load_data(self, train_csv=None, test_csv=None):
+        """
+        Function to load the train and test data.
+        :param train_csv:
+        :param test_csv:
+        :return:
+        """
 
         if train_csv is not None and test_csv is not None:
             self.train_data_vector = pandas.read_csv(train_csv)
             self.test_data_vector = pandas.read_csv(test_csv)
 
     def learn(self):
+        """
+        Learn function that does nothing fancy.
+        :return:
+        """
         self.load_data()
 
     def classify(self, label_index):
+        """
+        Classification function that classifies every test data point with distance measure w.r.t. training data points.
+        :param label_index:
+        :return:
+        """
 
         # Stores distance vectors in format [class_label, distance]
         classification_vector = list()
@@ -83,6 +101,11 @@ class ExpediaKNN:
             self.result_vector.append(class_label)
 
     def get_accuracy(self, label_index):
+        """
+        Returns the accuracy of the classification.
+        :param label_index:
+        :return:
+        """
 
         match_count = 0.0
 
