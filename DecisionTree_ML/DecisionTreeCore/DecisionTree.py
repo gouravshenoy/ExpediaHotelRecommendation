@@ -2,6 +2,7 @@
 import uuid
 import pydot
 import random
+from pprint import pprint
 
 # imports for computation
 from DecisionTreeCore.DataAnalyser import DataAnalyser
@@ -26,9 +27,12 @@ class DecisionTree:
         availableFeatures = data.getAvailableFeatures()
 
         self.__treeDepth = treeDepth
-        self.__rootNode = self.createNode(data, indices, availableFeatures, 0)
+        self.__rootNode = self.createNode(data=data,
+                                          subsetIndices=indices,
+                                          availableFeatures=availableFeatures,
+                                          nodeDepth=0, classLabelCounts=[-1] * 100, isRootNode=True)
 
-    def createNode(self, data, subsetIndices, availableFeatures, nodeDepth, positiveCount=-1, negativeCount=-1):
+    def createNode(self, data, subsetIndices, availableFeatures, nodeDepth, classLabelCounts, isRootNode=False):
         """
         Creates a node in the tree and returns the node object
         :param data: data object
@@ -39,58 +43,76 @@ class DecisionTree:
         :param negativeCount: total negative values in the data
         :return:
         """
+
+        # for expedia data-set we have 100 classes
+        classLabelRatios = [0] * 100
         dataAnalyser = DataAnalyser()
+
         # print("\nNode Data--")
         # print("Subset Indices: ", subsetIndices)
         # print("Available Features: ", availableFeatures)
 
         # Check if the node has pure class
-        if (positiveCount == 0 or negativeCount == 0):
+        # if (positiveCount == 0 or negativeCount == 0):
+        if (sum(classLabelCounts) in classLabelCounts):
             # Creating a pure class leaf node and return
-            positiveRatio = positiveCount / (positiveCount + negativeCount)
-            negativeRatio = negativeCount / (negativeCount + positiveCount)
-            node = Node(-1, positiveRatio, negativeRatio, nodeDepth)
+            totalClassCount = sum(classLabelCounts)
+
+            for classIndex in range(len(classLabelRatios)):
+                classLabelRatios[classIndex] = float(classLabelCounts[classIndex]) / float(totalClassCount)
+            node = Node(feature=-1,
+                        nodeDepth=nodeDepth,
+                        classLabelRatios=classLabelRatios)
             return node
 
         # If node is not pure get the feature breakdown from analyzer
         featureBreakDown = dataAnalyser.analyseFeatures(data, subsetIndices, availableFeatures, Constants.FEATURE_DIMENSION)
         # print("Feature Breakdown from Analyzer: ")
-        # pprint(featureBreakDown)
+        # print(featureBreakDown)
 
         feature = list(featureBreakDown.keys())[0]
         featureValues = list(featureBreakDown.get(feature).keys())
         featureValues.remove('info-gain')
 
         # calculate positive and negative class ratio at the node
-        if (positiveCount == -1 or negativeCount == -1):
-            negativeCount = 0
-            positiveCount = 0
+        # if (positiveCount == -1 or negativeCount == -1):
+        if (isRootNode):
+            classLabelCounts = [0] * 100
             for featureValue in featureValues:
-                negativeCount += featureBreakDown.get(feature).get(featureValue)[0]
-                positiveCount += featureBreakDown.get(feature).get(featureValue)[1]
+                for classIndex in range (len(classLabelCounts)):
+                    classLabelCounts[classIndex] += featureBreakDown.get(feature).get(featureValue)[classIndex]
 
-        positiveRatio = float(positiveCount) / (positiveCount + negativeCount)
-        negativeRatio = float(negativeCount) / (negativeCount + positiveCount)
+        # get total count
+        totalClassCount = sum(classLabelCounts)
+
+        # calculate label ratios
+        for classIndex in range (len(classLabelRatios)):
+            classLabelRatios[classIndex] = float(classLabelCounts[classIndex]) / float(totalClassCount)
 
         # Create a new node
-        node = Node(feature, positiveRatio, negativeRatio, nodeDepth)
+        node = Node(feature=feature,
+                    nodeDepth=nodeDepth,
+                    classLabelRatios=classLabelRatios)
 
         # Create branches and child nodes for each possible value feature can take
         childrenAvailableFeatures = list(availableFeatures)
         childrenAvailableFeatures.remove(feature)
         childrenNodeDepth = nodeDepth + 1
-        if self.isTerminationCondition(childrenNodeDepth, positiveRatio, childrenAvailableFeatures) == False:
+        if self.isTerminationCondition(childNodeDepth=childrenNodeDepth,
+                                       childrenAvailableFeatures=childrenAvailableFeatures,
+                                       classLabelRatios=classLabelRatios) == False:
             for featureValue in featureValues:
                 childSubsetIndices = data.getDataIndices(feature, featureValue, subsetIndices)
-                childNode = self.createNode(data, childSubsetIndices,
-                                            childrenAvailableFeatures, childrenNodeDepth,
-                                            featureBreakDown.get(feature).get(featureValue)[1],
-                                            featureBreakDown.get(feature).get(featureValue)[0])
+                childNode = self.createNode(data=data,
+                                            subsetIndices=childSubsetIndices,
+                                            availableFeatures=childrenAvailableFeatures,
+                                            nodeDepth=childrenNodeDepth,
+                                            classLabelCounts=classLabelCounts)
                 node.addChildren(featureValue, childNode)
 
         return node
 
-    def isTerminationCondition(self, childNodeDepth, positiveRatio, childrenAvailableFeatures):
+    def isTerminationCondition(self, childNodeDepth, childrenAvailableFeatures, classLabelRatios):
         """
         Check if the termination condition is reached in tree expansion process which is one of following-
         1. Pure class is created
@@ -102,11 +124,16 @@ class DecisionTree:
         :return: True if termination condition reached or else False.
         """
         isTerminationCondition = False
-        if (positiveRatio == 1
-            or positiveRatio == 0
+        if (1 in classLabelRatios
             or childNodeDepth > self.__treeDepth
             or not childrenAvailableFeatures):
             isTerminationCondition = True
+
+        # if (positiveRatio == 1
+        #     or positiveRatio == 0
+        #     or childNodeDepth > self.__treeDepth
+        #     or not childrenAvailableFeatures):
+        #     isTerminationCondition = True
 
         # print('Is Terminated: ', isTerminationCondition)
         return isTerminationCondition
@@ -265,16 +292,14 @@ class Node:
     """
     __featureIndex = -1
     __children = {}
-    __positiveRatio = 0
-    __negativeRatio = 0
     __nodeDepth = -1
+    __classLabelRatios = [0] * 100
 
-    def __init__(self, feature, positiveRatio, negativeRatio, nodeDepth):
+    def __init__(self, feature, nodeDepth, classLabelRatios):
         self.__featureIndex = feature
-        self.__positiveRatio = positiveRatio
-        self.__negativeRatio = negativeRatio
         self.__nodeDepth = nodeDepth
         self.__children = -1
+        self.__classLabelRatios = classLabelRatios
 
     def addChildren(self, featureValue, childNode):
         if self.__children == -1:
@@ -282,11 +307,8 @@ class Node:
 
         self.__children[featureValue] = childNode
 
-    def getPositiveRatio(self):
-        return self.__positiveRatio
-
-    def negativeRatio(self):
-        return self.__negativeRatio
+    def getClassLabelRatios(self):
+        return self.__classLabelRatios
 
     def getNodeDepth(self):
         return self.__nodeDepth
@@ -298,12 +320,8 @@ class Node:
         return self.__featureIndex
 
     def getClassLabel(self):
-        if self.__positiveRatio > self.__negativeRatio:
-            return 1
-        elif self.__positiveRatio < self.__negativeRatio:
-            return 0
-        else:
-            return random.choice((1,0))
+        # return index (which is also our class label)
+        return self.__classLabelRatios.index(max(self.__classLabelRatios))
 
     def printNode(self):
         print("\n\nNode Feature:", self.getFeatureIndex(), "| ClassLabel:", self.getClassLabel())
@@ -322,9 +340,9 @@ class Node:
     def drawNode(self, graph):
         node_name = "Feature: " + str(self.getFeatureIndex()) \
                     + "\nClass-Label: %d" % self.getClassLabel() \
-                    + "\nDepth: %d" % self.getNodeDepth() \
-                    + "\nPos-Ratio: " + str(self.getPositiveRatio()) \
-                    + "\nNeg-Ratio: " + str(self.negativeRatio())
+                    + "\nDepth: %d" % self.getNodeDepth()
+                    # + "\nPos-Ratio: " + str(self.getPositiveRatio()) \
+                    # + "\nNeg-Ratio: " + str(self.negativeRatio())
 
         if self.getChildren() != -1:
             dt_node = pydot.Node(str(uuid.uuid4()),
