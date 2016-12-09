@@ -36,11 +36,11 @@ class ExpediaKNN:
             self.train_data_vector = pandas.read_csv(train_csv)
             self.test_data_vector = pandas.read_csv(test_csv)
 
-            print(sorted(self.train_data_vector["hotel_cluster"].unique()))
+            # print(sorted(self.train_data_vector["hotel_cluster"].unique()))
 
-            print(self.train_data_vector[self.train_data_vector["hotel_cluster"] == 2]["user_location_country"].mean())
+            # print(self.train_data_vector[self.train_data_vector["hotel_cluster"] == 2]["user_location_country"].mean())
 
-            print(list(self.train_data_vector.columns))
+            # print(list(self.train_data_vector.columns))
 
     def get_mean_vectors_from_train(self, label_index):
 
