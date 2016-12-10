@@ -3,7 +3,7 @@ from scipy.optimize import fmin_cg
 import pandas as pd
 import pickle
 
-class Storage
+class Storage:
 
 	def __init__(self, name, model, predicted_labels, mask, accuracy, probabilites):
 		self.name = name
@@ -13,7 +13,9 @@ class Storage
 		self.accuracy = accuracy
 		self.probabilities = probabilites
 
-    
+"""
+This is class for Multinomial logistic regression which holds the related methods and data for performing multinomial Logistic Regression. It has fit(..) and predict(..) methods which is standard signature methods for machine learning classifiers. 
+"""
 class MultinomialLogisticRegression:
     
     def __init__(self):
@@ -53,7 +55,7 @@ class MultinomialLogisticRegression:
 
 
         # Find the optimal weights with Conjugate Gradient from SciPy
-        results = fmin_cg(self.cost_function, w0, fprime=self.gradient_function)
+        results = fmin_cg(self.cost_function, w0, fprime=self.gradient_function, full_output = True)
         self.learned_weights = results[0].reshape((self.no_of_features, self.no_of_classes))
 
         # Return self as the trained model
@@ -110,40 +112,52 @@ class MultinomialLogisticRegression:
         self.gradient = None  
         return gradient
 
-print('Starting Program...')
 
-expedia_data = pd.read_csv('./../data/train_booking_dest_merged.csv')
-expedia_data = expedia_data.fillna(0)
+"""
+ NOTE: This line onwards is the main program which takes default file path as input and executes the data
+"""
+def main():
+	print('Starting Program...')
 
-expedia_data = expedia_data.drop(labels=['date_time', 'srch_ci', 'srch_co'], axis=1)
-hotel_clusters = ['hotel_cluster5', 'hotel_cluster10']
-expedia_X = expedia_data.drop(labels=hotel_clusters, axis=1)
+	# Please update file path accordingly this file should contain all the 
+	file_path = '/home/anwar/AML_Project/data/train_booking_dest_merged_cluster_100.csv'
+	expedia_data = pd.read_csv(file_path)
+	expedia_data = expedia_data.fillna(0)
 
-for hotel_cluster in hotel_clusters:
-	
-	expedia_y = expedia_data[hotel_cluster]
+	# Uncomment this line if you passing unfiltered data with following non-numeric columns
+	#expedia_data = expedia_data.drop(labels=['date_time', 'srch_ci', 'srch_co'], axis=1)
+	hotel_clusters = ['hotel_cluster5', 'hotel_cluster10']
+	expedia_X = expedia_data.drop(labels=hotel_clusters, axis=1)
 
-	msk = np.random.rand(len(expedia_data)) < 0.8
+	for hotel_cluster in hotel_clusters:
 
-	expedia_X_train = expedia_X[msk]
-	expedia_X_test = expedia_X[~msk]
+		expedia_y = expedia_data[hotel_cluster]
 
-	expedia_y_train = expedia_y[msk]
-	expedia_y_test = expedia_y[~msk]
+		msk = np.random.rand(len(expedia_data)) < 0.8
+
+		expedia_X_train = expedia_X[msk]
+		expedia_X_test = expedia_X[~msk]
+
+		expedia_y_train = expedia_y[msk]
+		expedia_y_test = expedia_y[~msk]
 
 
-	multinomialLogisticRegression = MultinomialLogisticRegression()
-	multinomialLogisticRegression.fit(expedia_X_train, expedia_y_train)
+		multinomialLogisticRegression = MultinomialLogisticRegression()
+		multinomialLogisticRegression.fit(expedia_X_train, expedia_y_train)
 
-	y_hat = multinomialLogisticRegression.predict(expedia_X_test)
+		y_hat = multinomialLogisticRegression.predict(expedia_X_test)
 
-	storage = Storage(name, multinomialLogisticRegression, y_hat, 
-msk, accuracy, multinomialLogisticRegression.predicted_probabilities)
+		# Uncomment for creating a pickle object on the disk for the classifier.
+		#storage = Storage(name, multinomialLogisticRegression, y_hat, 	msk, accuracy, multinomialLogisticRegression.predicted_probabilities)
 
 	# Using accuracy score metric from scikit learn for accuracy calculations
 	from sklearn.metrics import accuracy_score
 	print(accuracy_score(expedia_y_test, y_hat))
 	print(multinomialLogisticRegression.predicted_probabilities)
 
-	pickle.dump(storage, open( "./../models/" + hotel_cluster, "wb" ) )
+	#pickle.dump(storage, open( "./../models/" + hotel_cluster, "wb" ) )
+
+if __name__ == "__main__":
+    main()
+
 
