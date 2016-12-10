@@ -1,6 +1,6 @@
 ### Prerequisites
-python 2.7.12
-python pandas library
+- python 2.7.12
+- python pandas library
 
 ### Preprocessing
 From the dataset csv (test/train), delete all the date columns. The date columns are non-numeric and hence skipped.
