@@ -149,7 +149,7 @@ class ExpediaKNN:
 def main():
 
     if len(sys.argv) < 3:
-        print("ERROR: Too few arguments provided!\nSyntax: expedia_knn.py <train_csv_path> <test_csv_path> [<K Value>] [<Number of Bootstraps>]")
+        print("ERROR: Too few arguments provided!\nSyntax: expedia_knn_with_sampling.py <train_csv_path> <test_csv_path> [<K Value>] [<Number of Bootstraps>]")
         exit(1)
 
     knn = ExpediaKNN()
