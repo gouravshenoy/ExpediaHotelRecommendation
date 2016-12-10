@@ -116,11 +116,13 @@ class MultinomialLogisticRegression:
 """
  NOTE: This line onwards is the main program which takes default file path as input and executes the data
 """
+import sys
 def main():
 	print('Starting Program...')
 
 	# Please update file path accordingly this file should contain all the 
-	file_path = '/home/anwar/AML_Project/data/train_booking_dest_merged_cluster_100.csv'
+	#file_path = '/home/anwar/AML_Project/data/train_booking_dest_merged_cluster_100.csv'
+	file_path = sys.argv[1]
 	expedia_data = pd.read_csv(file_path)
 	expedia_data = expedia_data.fillna(0)
 
