@@ -2,13 +2,14 @@ __author__ = "Mangirish Wagle"
 
 import pandas
 import math
+import sys
 
 from itertools import groupby
 
 
 class ExpediaKNN:
     """
-    Class for KNN algorithm.
+    Class for KNN algorithm that runs on N bootstrap samples and averages out the accuracy. (Bagging on KNN)
     """
 
     K_VALUE = 20
@@ -137,12 +138,33 @@ class ExpediaKNN:
         return match_count/float(len(self.test_sampled_vector))
 
     def get_agg_accuracy(self):
+        """
+        Returns averaged accuracy.
+        :return:
+        """
 
         return sum(self.result_bag) / len(self.result_bag)
 
 
 def main():
+
+    if len(sys.argv) < 3:
+        print("ERROR: Too few arguments provided!\nSyntax: expedia_knn.py <train_csv_path> <test_csv_path> [<K Value>] [<Number of Bootstraps>]")
+        exit(1)
+
     knn = ExpediaKNN()
+
+    knn.train_csv = sys.argv[1]
+    knn.test_csv = sys.argv[2]
+
+    if len(sys.argv) > 3:
+        print("Setting K to " + sys.argv[3])
+        knn.K_VALUE = int(sys.argv[3])
+
+    if len(sys.argv) > 4:
+        print("Setting Bootstrap Samples to " + sys.argv[4])
+        knn.SAMPLES = int(sys.argv[4])
+
 
     knn.load_data(knn.train_csv, knn.test_csv)
     # knn.get_mean_vectors_from_train("hotel_cluster")
